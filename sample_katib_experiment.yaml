@@ -1,0 +1,52 @@
+apiVersion: kubeflow.org/v1beta1
+kind: Experiment
+metadata:
+  name: random-experiment
+  namespace: kubeflow  # Ensure this matches your Kubeflow namespace
+spec:
+  objective:
+    type: maximize
+    goal: 0.99
+    objectiveMetricName: accuracy
+  algorithm:
+    algorithmName: random
+  parallelTrialCount: 3
+  maxTrialCount: 12
+  maxFailedTrialCount: 3
+  parameters:
+    - name: learning-rate
+      parameterType: double
+      feasibleSpace:
+        min: "0.01"
+        max: "0.05"
+    - name: batch-size
+      parameterType: int
+      feasibleSpace:
+        min: "32"
+        max: "128"
+  trialTemplate:
+    primaryContainerName: training-container
+    trialParameters:
+      - name: learningRate
+        description: Learning rate for the training job
+        reference: learning-rate
+      - name: batchSize
+        description: Batch size for the training job
+        reference: batch-size
+    trialSpec:
+      apiVersion: batch/v1
+      kind: Job
+      spec:
+        template:
+          spec:
+            containers:
+              - name: training-container
+                image: docker.io/kubeflowkatib/mxnet-mnist:latest  # Example training image
+                command:
+                  - "python3"
+                  - "/opt/mxnet-mnist/mnist.py"
+                  - "--lr"
+                  - "${trialParameters.learningRate}"
+                  - "--batch-size"
+                  - "${trialParameters.batchSize}"
+            restartPolicy: Never
