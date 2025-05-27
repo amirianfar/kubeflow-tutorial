@@ -1,0 +1,31 @@
+from kfp import dsl
+from kfp import kubernetes
+
+@dsl.component
+def make_data():
+    with open('/data/milad/file-1.txt', 'w') as f:
+        f.write('milad data')
+
+@dsl.component
+def read_data():
+    with open('/data/milad/file-1.txt') as f:
+        print(f.read())
+
+@dsl.pipeline
+def pipeline():
+ 
+    task1 = make_data()
+
+    kubernetes.mount_pvc(
+        task1,
+        pvc_name="<<YOUR_NOTEBOOK_VOULE_NAME>>",
+        mount_path='/data',
+    )
+   
+
+
+    task2 = read_data().after(task1)
+    kubernetes.mount_pvc(
+        task2,
+        pvc_name="<<YOUR_NOTEBOOK_VOULE_NAME>>",
+        mount_path='/data',
